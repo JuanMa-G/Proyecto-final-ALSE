@@ -1,0 +1,48 @@
+#include "inventorymanager.h"
+#include "component.h"
+
+InventoryManager::InventoryManager(const QString &dbPath)
+{
+    db = new DatabaseManager(dbPath);
+    if (db->isOpen()) {
+        db->createTable();
+    }
+}
+
+InventoryManager::~InventoryManager()
+{
+    delete db;
+}
+
+QList<Component> InventoryManager::obtenerTodos()
+{
+    return db->fetchAllComponents();
+}
+
+int InventoryManager::agregarComponente(const Component &c)
+{
+    return db->insertComponent(
+        c.getName(),
+        c.getType(),
+        c.getQuantity(),
+        c.getLocation(),
+        c.getPurchaseDate()
+        );
+}
+
+bool InventoryManager::eliminarComponente(int id)
+{
+    return db->deleteComponentById(id);
+}
+
+bool InventoryManager::actualizarComponente(const Component &c)
+{
+    return db->updateComponent(
+        c.getId(),
+        c.getName(),
+        c.getType(),
+        c.getQuantity(),
+        c.getLocation(),
+        c.getPurchaseDate()
+        );
+}
