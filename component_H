@@ -3,13 +3,17 @@
 
 #include <QString>
 
+// Clase que representa un componente del inventario
 class Component {
 public:
+    // Constructor por defecto
     Component();
+
+    // Constructor con todos los parámetros
     Component(int id, const QString &name, const QString &type, int quantity,
               const QString &location, const QString &purchaseDate);
 
-    // Getters
+    // Métodos para obtener los valores (getters)
     int getId() const;
     QString getName() const;
     QString getType() const;
@@ -17,7 +21,7 @@ public:
     QString getLocation() const;
     QString getPurchaseDate() const;
 
-    // Setters
+    // Métodos para modificar los valores (setters)
     void setId(int id);
     void setName(const QString &name);
     void setType(const QString &type);
@@ -26,6 +30,7 @@ public:
     void setPurchaseDate(const QString &date);
 
 private:
+    // Atributos del componente (todos son privados para mantener encapsulamiento)
     int id;
     QString name;
     QString type;
