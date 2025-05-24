@@ -1,0 +1,115 @@
+#include "databasemanager.h"
+#include "component.h"
+
+DatabaseManager::DatabaseManager(const QString &path) {
+    db = QSqlDatabase::addDatabase("QSQLITE");
+    db.setDatabaseName(path);
+
+    if (!db.open()) {
+        qDebug() << "No se pudo abrir la base de datos:" << db.lastError().text();
+    } else {
+        qDebug() << "Base de datos abierta correctamente.";
+    }
+}
+
+DatabaseManager::~DatabaseManager() {
+    if (db.isOpen()) {
+        db.close();
+    }
+}
+
+bool DatabaseManager::isOpen() const {
+    return db.isOpen();
+}
+
+bool DatabaseManager::createTable() {
+    QSqlQuery query;
+    QString createStatement =
+        "CREATE TABLE IF NOT EXISTS components ("
+        "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+        "name TEXT, "
+        "type TEXT, "
+        "quantity INTEGER, "
+        "location TEXT, "
+        "purchase_date TEXT"
+        ");";
+
+    if (!query.exec(createStatement)) {
+        qDebug() << "Error al crear la tabla:" << query.lastError().text();
+        return false;
+    }
+    return true;
+}
+
+int DatabaseManager::insertComponent(const QString &name, const QString &type, int quantity, const QString &location, const QString &purchaseDate)
+{
+    QSqlQuery query;
+    query.prepare("INSERT INTO components (name, type, quantity, location, purchase_date) "
+                  "VALUES (:name, :type, :quantity, :location, :purchase_date)");
+
+    query.bindValue(":name", name);
+    query.bindValue(":type", type);
+    query.bindValue(":quantity", quantity);
+    query.bindValue(":location", location);
+    query.bindValue(":purchase_date", purchaseDate);
+
+    if (!query.exec()) {
+        qDebug() << "Error al insertar el componente:" << query.lastError().text();
+        return -1;
+    }
+    int insertedId = query.lastInsertId().toInt();
+    qDebug() << "Insertado con ID:" << insertedId;
+    return insertedId;
+}
+
+QList<Component> DatabaseManager::fetchAllComponents()
+{
+    QList<Component> components;
+    QSqlQuery query("SELECT * FROM components");
+
+    while (query.next()) {
+        Component c;
+        c.setId(query.value("id").toInt());
+        c.setName(query.value("name").toString());
+        c.setType(query.value("type").toString());
+        c.setQuantity(query.value("quantity").toInt());
+        c.setLocation(query.value("location").toString());
+        c.setPurchaseDate(query.value("purchase_date").toString());
+        components.append(c);
+    }
+
+    return components;
+}
+
+bool DatabaseManager::deleteComponentById(int id)
+{
+    QSqlQuery query;
+    query.prepare("DELETE FROM components WHERE id = :id");
+    query.bindValue(":id", id);
+    qDebug() << "Intentando eliminar ID:" << id;
+    qDebug() << "DELETE ejecutado para ID:" << id;
+    if (!query.exec()) {
+        qDebug() << "Error al eliminar el componente:" << query.lastError().text();
+        return false;
+    }
+    qDebug() << "Componente eliminado correctamente de la base.";
+    return true;
+}
+
+bool DatabaseManager::updateComponent(int id, const QString &name, const QString &type, int quantity, const QString &location, const QString &purchaseDate)
+{
+    QSqlQuery query;
+    query.prepare("UPDATE components SET name = :name, type = :type, quantity = :quantity, location = :location, purchase_date = :purchase_date WHERE id = :id");
+    query.bindValue(":name", name);
+    query.bindValue(":type", type);
+    query.bindValue(":quantity", quantity);
+    query.bindValue(":location", location);
+    query.bindValue(":purchase_date", purchaseDate);
+    query.bindValue(":id", id);
+
+    if (!query.exec()) {
+        qDebug() << "Error al actualizar componente:" << query.lastError().text();
+        return false;
+    }
+    return true;
+}
