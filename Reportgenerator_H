@@ -4,9 +4,13 @@
 #include <QString>
 #include <QTableWidget>
 
+// Clase utilitaria para generar reportes a partir de la tabla de componentes
 class ReportGenerator {
 public:
+    // Exporta los datos de la tabla a un archivo CSV
     static bool exportToCSV(QTableWidget *table, const QString &fileName);
+
+    // Exporta los datos de la tabla a un archivo PDF
     static bool exportToPDF(QTableWidget *table, const QString &fileName);
 };
 
