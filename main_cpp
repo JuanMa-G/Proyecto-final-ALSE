@@ -1,11 +1,31 @@
-#include "mainwindow.h"
-
 #include <QApplication>
+#include <QSplashScreen>
+#include <QTimer>
+#include "mainwindow.h"
 
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
+
+    //  Crear pantalla de bienvenida (splash)
+    QPixmap splashPixmap(800, 500);
+
+    splashPixmap.fill(QColor("#D6EAF8"));  // gris claro, elegante y neutro
+
+    QSplashScreen splash(splashPixmap);
+    splash.showMessage("Gestor de Inventario\n Bienvenido\nMayo 2025",
+                       Qt::AlignCenter | Qt::AlignVCenter,
+                       Qt::black);
+    splash.setFont(QFont("Segoe UI", 20, QFont::Bold));
+    splash.show();
+
+    // Esperar 2 segundos antes de abrir la app
+    QTimer::singleShot(4000, &splash, &QSplashScreen::close);
+
+    // 🪟 Mostrar la ventana principal después del splash
     MainWindow w;
-    w.show();
+    QTimer::singleShot(4000, &w, &QWidget::show);
+
     return a.exec();
 }
+
