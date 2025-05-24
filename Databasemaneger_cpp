@@ -1,10 +1,12 @@
 #include "databasemanager.h"
 #include "component.h"
 
+// Constructor: configura la conexión con la base de datos SQLite
 DatabaseManager::DatabaseManager(const QString &path) {
-    db = QSqlDatabase::addDatabase("QSQLITE");
-    db.setDatabaseName(path);
+    db = QSqlDatabase::addDatabase("QSQLITE");      // Tipo de base de datos
+    db.setDatabaseName(path);                       // Ruta del archivo .db
 
+    // Intenta abrir la base de datos
     if (!db.open()) {
         qDebug() << "No se pudo abrir la base de datos:" << db.lastError().text();
     } else {
@@ -12,16 +14,19 @@ DatabaseManager::DatabaseManager(const QString &path) {
     }
 }
 
+// Destructor: cierra la base de datos si aún está abierta
 DatabaseManager::~DatabaseManager() {
     if (db.isOpen()) {
         db.close();
     }
 }
 
+// Verifica si la base de datos está abierta
 bool DatabaseManager::isOpen() const {
     return db.isOpen();
 }
 
+// Crea la tabla "components" si no existe
 bool DatabaseManager::createTable() {
     QSqlQuery query;
     QString createStatement =
@@ -34,6 +39,7 @@ bool DatabaseManager::createTable() {
         "purchase_date TEXT"
         ");";
 
+    // Ejecuta el comando SQL
     if (!query.exec(createStatement)) {
         qDebug() << "Error al crear la tabla:" << query.lastError().text();
         return false;
@@ -41,32 +47,39 @@ bool DatabaseManager::createTable() {
     return true;
 }
 
+// Inserta un nuevo componente en la base de datos
 int DatabaseManager::insertComponent(const QString &name, const QString &type, int quantity, const QString &location, const QString &purchaseDate)
 {
     QSqlQuery query;
     query.prepare("INSERT INTO components (name, type, quantity, location, purchase_date) "
                   "VALUES (:name, :type, :quantity, :location, :purchase_date)");
 
+    // Asigna valores a los campos
     query.bindValue(":name", name);
     query.bindValue(":type", type);
     query.bindValue(":quantity", quantity);
     query.bindValue(":location", location);
     query.bindValue(":purchase_date", purchaseDate);
 
+    // Ejecuta la consulta
     if (!query.exec()) {
         qDebug() << "Error al insertar el componente:" << query.lastError().text();
         return -1;
     }
+
+    // Retorna el ID insertado
     int insertedId = query.lastInsertId().toInt();
     qDebug() << "Insertado con ID:" << insertedId;
     return insertedId;
 }
 
+// Recupera todos los componentes desde la base de datos
 QList<Component> DatabaseManager::fetchAllComponents()
 {
     QList<Component> components;
     QSqlQuery query("SELECT * FROM components");
 
+    // Recorre los resultados y crea objetos Component
     while (query.next()) {
         Component c;
         c.setId(query.value("id").toInt());
@@ -81,25 +94,30 @@ QList<Component> DatabaseManager::fetchAllComponents()
     return components;
 }
 
+// Elimina un componente de la base de datos según su ID
 bool DatabaseManager::deleteComponentById(int id)
 {
     QSqlQuery query;
     query.prepare("DELETE FROM components WHERE id = :id");
     query.bindValue(":id", id);
+    
     qDebug() << "Intentando eliminar ID:" << id;
-    qDebug() << "DELETE ejecutado para ID:" << id;
     if (!query.exec()) {
         qDebug() << "Error al eliminar el componente:" << query.lastError().text();
         return false;
     }
+
     qDebug() << "Componente eliminado correctamente de la base.";
     return true;
 }
 
+// Actualiza los datos de un componente existente
 bool DatabaseManager::updateComponent(int id, const QString &name, const QString &type, int quantity, const QString &location, const QString &purchaseDate)
 {
     QSqlQuery query;
     query.prepare("UPDATE components SET name = :name, type = :type, quantity = :quantity, location = :location, purchase_date = :purchase_date WHERE id = :id");
+
+    // Asigna los nuevos valores
     query.bindValue(":name", name);
     query.bindValue(":type", type);
     query.bindValue(":quantity", quantity);
@@ -111,5 +129,6 @@ bool DatabaseManager::updateComponent(int id, const QString &name, const QString
         qDebug() << "Error al actualizar componente:" << query.lastError().text();
         return false;
     }
+
     return true;
 }
