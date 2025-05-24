@@ -7,23 +7,37 @@
 #include <QSqlError>
 #include <QList>
 #include <QDebug>
-#include "component.h"  // ✅ ¡Ya usamos la clase Component completa!
+#include "component.h"  // Incluimos la clase Component para trabajar con objetos de inventario
 
+// Clase encargada de gestionar la conexión y operaciones con la base de datos SQLite
 class DatabaseManager {
 public:
+    // Constructor: recibe la ruta de la base de datos
     DatabaseManager(const QString &path);
+
+    // Destructor: cierra la base de datos si está abierta
     ~DatabaseManager();
 
+    // Verifica si la conexión a la base de datos está abierta
     bool isOpen() const;
+
+    // Crea la tabla de componentes si no existe
     bool createTable();
 
+    // Inserta un nuevo componente en la base de datos
     int insertComponent(const QString &name, const QString &type, int quantity, const QString &location, const QString &purchaseDate);
+
+    // Recupera todos los componentes almacenados en la base de datos
     QList<Component> fetchAllComponents();
+
+    // Elimina un componente según su ID
     bool deleteComponentById(int id);
+
+    // Actualiza los datos de un componente existente
     bool updateComponent(int id, const QString &name, const QString &type, int quantity, const QString &location, const QString &purchaseDate);
 
 private:
-    QSqlDatabase db;
+    QSqlDatabase db;  // Objeto que representa la conexión a la base de datos
 };
 
 #endif // DATABASEMANAGER_H
