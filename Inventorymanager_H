@@ -1,0 +1,20 @@
+#ifndef INVENTORYMANAGER_H
+#define INVENTORYMANAGER_H
+
+#include "databasemanager.h"
+
+class InventoryManager {
+public:
+    InventoryManager(const QString &dbPath);
+    ~InventoryManager();
+
+    QList<Component> obtenerTodos();
+    int agregarComponente(const Component &c);
+    bool eliminarComponente(int id);
+    bool actualizarComponente(const Component &c);
+
+private:
+    DatabaseManager *db;
+};
+
+#endif // INVENTORYMANAGER_H
