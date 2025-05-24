@@ -1,20 +1,32 @@
 #ifndef INVENTORYMANAGER_H
 #define INVENTORYMANAGER_H
 
-#include "databasemanager.h"
+#include "databasemanager.h"  // Usamos DatabaseManager para acceder a la base de datos
 
+// Clase encargada de manejar la lógica del inventario
+// Se comunica con DatabaseManager y organiza la información para la interfaz
 class InventoryManager {
 public:
+    // Constructor que recibe la ruta a la base de datos
     InventoryManager(const QString &dbPath);
+
+    // Destructor para liberar recursos
     ~InventoryManager();
 
+    // Devuelve todos los componentes del inventario
     QList<Component> obtenerTodos();
+
+    // Agrega un nuevo componente al inventario
     int agregarComponente(const Component &c);
+
+    // Elimina un componente del inventario por ID
     bool eliminarComponente(int id);
+
+    // Actualiza los datos de un componente
     bool actualizarComponente(const Component &c);
 
 private:
-    DatabaseManager *db;
+    DatabaseManager *db;  // Manejador interno de base de datos
 };
 
 #endif // INVENTORYMANAGER_H
