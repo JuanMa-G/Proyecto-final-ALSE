@@ -1,0 +1,21 @@
+#include "component.h"
+
+Component::Component() : id(0), quantity(0) {}
+
+Component::Component(int id, const QString &name, const QString &type, int quantity,
+                     const QString &location, const QString &purchaseDate)
+    : id(id), name(name), type(type), quantity(quantity), location(location), purchaseDate(purchaseDate) {}
+
+int Component::getId() const { return id; }
+QString Component::getName() const { return name; }
+QString Component::getType() const { return type; }
+int Component::getQuantity() const { return quantity; }
+QString Component::getLocation() const { return location; }
+QString Component::getPurchaseDate() const { return purchaseDate; }
+
+void Component::setId(int i) { id = i; }
+void Component::setName(const QString &n) { name = n; }
+void Component::setType(const QString &t) { type = t; }
+void Component::setQuantity(int q) { quantity = q; }
+void Component::setLocation(const QString &l) { location = l; }
+void Component::setPurchaseDate(const QString &d) { purchaseDate = d; }
