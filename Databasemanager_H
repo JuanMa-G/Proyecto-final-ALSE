@@ -1,0 +1,29 @@
+#ifndef DATABASEMANAGER_H
+#define DATABASEMANAGER_H
+
+#include <QString>
+#include <QSqlDatabase>
+#include <QSqlQuery>
+#include <QSqlError>
+#include <QList>
+#include <QDebug>
+#include "component.h"  // ✅ ¡Ya usamos la clase Component completa!
+
+class DatabaseManager {
+public:
+    DatabaseManager(const QString &path);
+    ~DatabaseManager();
+
+    bool isOpen() const;
+    bool createTable();
+
+    int insertComponent(const QString &name, const QString &type, int quantity, const QString &location, const QString &purchaseDate);
+    QList<Component> fetchAllComponents();
+    bool deleteComponentById(int id);
+    bool updateComponent(int id, const QString &name, const QString &type, int quantity, const QString &location, const QString &purchaseDate);
+
+private:
+    QSqlDatabase db;
+};
+
+#endif // DATABASEMANAGER_H
