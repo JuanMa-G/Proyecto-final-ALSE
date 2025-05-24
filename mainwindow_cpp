@@ -1,0 +1,231 @@
+#include "mainwindow.h"
+#include "ui_mainwindow.h"
+#include "inventorymanager.h"
+#include "reportgenerator.h"
+#include "component.h"
+
+#include <QMessageBox>
+#include <QFileDialog>
+#include <QFile>
+#include <QTextStream>
+#include <QPushButton>
+#include <QPdfWriter>
+#include <QPainter>
+#include <QTextDocument>
+
+MainWindow::MainWindow(QWidget *parent)
+    : QMainWindow(parent)
+    , ui(new Ui::MainWindow)
+{
+    ui->setupUi(this);
+
+    inventory = new InventoryManager("inventario.db");
+
+    ui->componentTable_2->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    ui->componentTable_2->setColumnCount(6);
+    QStringList headers = {"ID", "Nombre", "Tipo", "Cantidad", "Ubicación", "Fecha"};
+    ui->componentTable_2->setHorizontalHeaderLabels(headers);
+    ui->componentTable_2->horizontalHeader()->setStretchLastSection(true);
+    ui->componentTable_2->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+
+    QList<Component> components = inventory->obtenerTodos();
+    ui->componentTable_2->setRowCount(0);
+
+    for (int i = 0; i < components.size(); ++i) {
+        const Component &c = components[i];
+        ui->componentTable_2->insertRow(i);
+        ui->componentTable_2->setItem(i, 0, new QTableWidgetItem(QString::number(c.getId())));
+        ui->componentTable_2->setItem(i, 1, new QTableWidgetItem(c.getName()));
+        ui->componentTable_2->setItem(i, 2, new QTableWidgetItem(c.getType()));
+        ui->componentTable_2->setItem(i, 3, new QTableWidgetItem(QString::number(c.getQuantity())));
+        ui->componentTable_2->setItem(i, 4, new QTableWidgetItem(c.getLocation()));
+        ui->componentTable_2->setItem(i, 5, new QTableWidgetItem(c.getPurchaseDate()));
+
+        QTableWidgetItem *quantityItem = ui->componentTable_2->item(i, 3);
+        if (quantityItem && c.getQuantity() <= 3) {
+            quantityItem->setBackground(Qt::yellow);
+        }
+    }
+
+    connect(ui->componentTable_2, &QTableWidget::cellClicked, this, [=](int row, int) {
+        ui->nameInput->setText(ui->componentTable_2->item(row, 1)->text());
+        ui->typeInput->setText(ui->componentTable_2->item(row, 2)->text());
+        ui->quantityInput->setValue(ui->componentTable_2->item(row, 3)->text().toInt());
+        ui->locationInput->setText(ui->componentTable_2->item(row, 4)->text());
+        ui->dateEditPurchase->setDate(QDate::fromString(ui->componentTable_2->item(row, 5)->text(), "yyyy-MM-dd"));
+    });
+
+    connect(ui->addButton, &QPushButton::clicked, this, &MainWindow::handleAddButto);
+    connect(ui->deleteButton, &QPushButton::clicked, this, &MainWindow::handleDeleteButton);
+    connect(ui->updateButton, &QPushButton::clicked, this, &MainWindow::handleUpdateButton);
+    connect(ui->generateReportButton, &QPushButton::clicked, this, &MainWindow::handleGenerateReport);
+    connect(ui->searchInput, &QLineEdit::textChanged, this, &MainWindow::filterComponents);
+}
+
+MainWindow::~MainWindow()
+{
+    delete inventory;
+    delete ui;
+}
+
+// ...
+
+void MainWindow::handleAddButto()
+{
+    Component c;
+    c.setName(ui->nameInput->text());
+    c.setType(ui->typeInput->text());
+    c.setQuantity(ui->quantityInput->value());
+    c.setLocation(ui->locationInput->text());
+    c.setPurchaseDate(ui->dateEditPurchase->date().toString("yyyy-MM-dd"));
+
+    if (c.getName().isEmpty() || c.getType().isEmpty()) {
+        QMessageBox::warning(this, "Datos incompletos", "Por favor ingresa al menos nombre y tipo.");
+        return;
+    }
+
+    int id = inventory->agregarComponente(c);
+    if (id == -1) {
+        QMessageBox::critical(this, "Error", "No se pudo insertar el componente en la base de datos.");
+        return;
+    }
+
+    c.setId(id);
+    int row = ui->componentTable_2->rowCount();
+    ui->componentTable_2->insertRow(row);
+    ui->componentTable_2->setItem(row, 0, new QTableWidgetItem(QString::number(c.getId())));
+    ui->componentTable_2->setItem(row, 1, new QTableWidgetItem(c.getName()));
+    ui->componentTable_2->setItem(row, 2, new QTableWidgetItem(c.getType()));
+    ui->componentTable_2->setItem(row, 3, new QTableWidgetItem(QString::number(c.getQuantity())));
+    ui->componentTable_2->setItem(row, 4, new QTableWidgetItem(c.getLocation()));
+    ui->componentTable_2->setItem(row, 5, new QTableWidgetItem(c.getPurchaseDate()));
+
+    QTableWidgetItem *quantityItem = ui->componentTable_2->item(row, 3);
+    if (quantityItem) {
+        quantityItem->setBackground(c.getQuantity() <= 3 ? Qt::yellow : Qt::green);
+    }
+
+    ui->nameInput->clear();
+    ui->typeInput->clear();
+    ui->quantityInput->setValue(0);
+    ui->locationInput->clear();
+    ui->dateEditPurchase->setDate(QDate::currentDate());
+}
+
+void MainWindow::handleUpdateButton()
+{
+    int row = ui->componentTable_2->currentRow();
+    if (row < 0) {
+        QMessageBox::warning(this, "Selección requerida", "Selecciona un componente para editar.");
+        return;
+    }
+
+    Component c;
+    c.setId(ui->componentTable_2->item(row, 0)->text().toInt());
+    c.setName(ui->nameInput->text());
+    c.setType(ui->typeInput->text());
+    c.setQuantity(ui->quantityInput->value());
+    c.setLocation(ui->locationInput->text());
+    c.setPurchaseDate(ui->dateEditPurchase->date().toString("yyyy-MM-dd"));
+
+    if (c.getName().isEmpty() || c.getType().isEmpty()) {
+        QMessageBox::warning(this, "Datos incompletos", "Nombre y tipo no pueden estar vacíos.");
+        return;
+    }
+
+    if (inventory->actualizarComponente(c)) {
+        ui->componentTable_2->setItem(row, 1, new QTableWidgetItem(c.getName()));
+        ui->componentTable_2->setItem(row, 2, new QTableWidgetItem(c.getType()));
+        ui->componentTable_2->setItem(row, 3, new QTableWidgetItem(QString::number(c.getQuantity())));
+        ui->componentTable_2->setItem(row, 4, new QTableWidgetItem(c.getLocation()));
+        ui->componentTable_2->setItem(row, 5, new QTableWidgetItem(c.getPurchaseDate()));
+
+        QTableWidgetItem *quantityItem = ui->componentTable_2->item(row, 3);
+        if (quantityItem) {
+            quantityItem->setBackground(c.getQuantity() <= 3 ? Qt::yellow : Qt::green);
+        }
+
+        for (int col = 0; col < ui->componentTable_2->columnCount(); ++col) {
+            if (col != 3) {
+                QTableWidgetItem *item = ui->componentTable_2->item(row, col);
+                if (item) item->setBackground(Qt::white);
+            }
+        }
+
+        QMessageBox::information(this, "Éxito", "Componente actualizado correctamente.");
+    } else {
+        QMessageBox::critical(this, "Error", "No se pudo actualizar el componente.");
+    }
+}
+
+
+void MainWindow::handleDeleteButton()
+{
+    int row = ui->componentTable_2->currentRow();
+    if (row < 0) {
+        QMessageBox::warning(this, "Selección requerida", "Selecciona un componente para eliminar.");
+        return;
+    }
+
+    int id = ui->componentTable_2->item(row, 0)->text().toInt();
+    QMessageBox::StandardButton reply = QMessageBox::question(this, "Confirmar eliminación",
+                                                              "¿Estás seguro de que quieres eliminar este componente?",
+                                                              QMessageBox::Yes | QMessageBox::No);
+
+    if (reply == QMessageBox::Yes) {
+        if (inventory->eliminarComponente(id)) {
+            ui->componentTable_2->removeRow(row);
+            QMessageBox::information(this, "Eliminado", "Componente eliminado correctamente.");
+        } else {
+            QMessageBox::critical(this, "Error", "No se pudo eliminar el componente de la base de datos.");
+        }
+    }
+}
+
+void MainWindow::filterComponents(const QString &text)
+{
+    for (int row = 0; row < ui->componentTable_2->rowCount(); ++row) {
+        bool match = false;
+        for (int col = 1; col <= 5; ++col) {
+            QTableWidgetItem *item = ui->componentTable_2->item(row, col);
+            if (item && item->text().contains(text, Qt::CaseInsensitive)) {
+                match = true;
+                break;
+            }
+        }
+        ui->componentTable_2->setRowHidden(row, !match);
+    }
+}
+
+void MainWindow::handleGenerateReport()
+{
+    QMessageBox msgBox(this);
+    msgBox.setWindowTitle("Formato de reporte");
+    msgBox.setText("\u00bfEn qu\u00e9 formato deseas guardar el reporte?");
+
+    QPushButton *csvButton = msgBox.addButton("CSV", QMessageBox::AcceptRole);
+    QPushButton *pdfButton = msgBox.addButton("PDF", QMessageBox::AcceptRole);
+    msgBox.addButton("Cancelar", QMessageBox::RejectRole);
+
+    msgBox.exec();
+
+    if (msgBox.clickedButton() == csvButton) {
+        QString fileName = QFileDialog::getSaveFileName(this, "Guardar Reporte CSV", "", "Archivos CSV (*.csv)");
+        if (fileName.isEmpty()) return;
+
+        if (ReportGenerator::exportToCSV(ui->componentTable_2, fileName)) {
+            QMessageBox::information(this, "\u00c9xito", "Reporte CSV guardado correctamente.");
+        } else {
+            QMessageBox::warning(this, "Error", "No se pudo guardar el reporte CSV.");
+        }
+    } else if (msgBox.clickedButton() == pdfButton) {
+        QString fileName = QFileDialog::getSaveFileName(this, "Guardar Reporte PDF", "", "Archivos PDF (*.pdf)");
+        if (fileName.isEmpty()) return;
+
+        if (ReportGenerator::exportToPDF(ui->componentTable_2, fileName)) {
+            QMessageBox::information(this, "\u00c9xito", "Reporte PDF guardado correctamente.");
+        } else {
+            QMessageBox::warning(this, "Error", "No se pudo guardar el reporte PDF.");
+        }
+    }
+}
