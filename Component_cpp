@@ -1,11 +1,14 @@
 #include "component.h"
 
+// Constructor por defecto: inicializa el ID y cantidad en 0
 Component::Component() : id(0), quantity(0) {}
 
+// Constructor con todos los atributos (útil cuando ya tienes los datos del componente)
 Component::Component(int id, const QString &name, const QString &type, int quantity,
                      const QString &location, const QString &purchaseDate)
     : id(id), name(name), type(type), quantity(quantity), location(location), purchaseDate(purchaseDate) {}
 
+// Métodos para obtener (getters)
 int Component::getId() const { return id; }
 QString Component::getName() const { return name; }
 QString Component::getType() const { return type; }
@@ -13,6 +16,7 @@ int Component::getQuantity() const { return quantity; }
 QString Component::getLocation() const { return location; }
 QString Component::getPurchaseDate() const { return purchaseDate; }
 
+// Métodos para asignar valores (setters)
 void Component::setId(int i) { id = i; }
 void Component::setName(const QString &n) { name = n; }
 void Component::setType(const QString &t) { type = t; }
