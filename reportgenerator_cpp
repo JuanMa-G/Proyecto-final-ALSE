@@ -1,0 +1,70 @@
+#include "reportgenerator.h"
+#include <QFile>
+#include <QTextStream>
+#include <QMessageBox>
+#include <QPdfWriter>
+#include <QPainter>
+#include <QTextDocument>
+
+// Función que exporta los datos de la tabla a un archivo CSV
+bool ReportGenerator::exportToCSV(QTableWidget *table, const QString &fileName)
+{
+    QFile file(fileName);  // Crea el archivo
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        return false;  // Si no se puede abrir, retorna falso
+    }
+
+    QTextStream out(&file);
+    
+    // Escribir los encabezados
+    out << "ID,Nombre,Tipo,Cantidad,Ubicación,Fecha de Compra\n";
+
+    // Recorrer las filas de la tabla
+    for (int row = 0; row < table->rowCount(); ++row) {
+        QStringList rowData;
+        for (int col = 0; col < table->columnCount(); ++col) {
+            QTableWidgetItem *item = table->item(row, col);
+            rowData << (item ? item->text() : "");  // Si no hay texto, deja vacío
+        }
+        out << rowData.join(",") << "\n";  // Escribe la fila en formato CSV
+    }
+
+    file.close();  // Cierra el archivo
+    return true;   // Exportación exitosa
+}
+
+// Función que exporta los datos a un archivo PDF en formato tabla
+bool ReportGenerator::exportToPDF(QTableWidget *table, const QString &fileName)
+{
+    QPdfWriter pdfWriter(fileName);  // Crea el archivo PDF
+    pdfWriter.setPageSize(QPageSize(QPageSize::A4));  // Tamaño de hoja A4
+    pdfWriter.setResolution(300);  // Alta resolución
+
+    QPainter painter(&pdfWriter);  // Se usa para "dibujar" el documento
+    QTextDocument doc;
+
+    // Construye el contenido en formato HTML
+    QString html = "<h2>Reporte de Componentes</h2>";
+    html += "<table border='1' cellspacing='0' cellpadding='4'>";
+    html += "<tr><th>ID</th><th>Nombre</th><th>Tipo</th><th>Cantidad</th><th>Ubicación</th><th>Fecha</th></tr>";
+
+    // Recorre la tabla y genera filas HTML
+    for (int row = 0; row < table->rowCount(); ++row) {
+        html += "<tr>";
+        for (int col = 0; col < table->columnCount(); ++col) {
+            QTableWidgetItem *item = table->item(row, col);
+            html += "<td>" + (item ? item->text() : "") + "</td>";
+        }
+        html += "</tr>";
+    }
+
+    html += "</table>";
+
+    // Inserta el HTML en el documento y lo dibuja en el PDF
+    doc.setHtml(html);
+    doc.setPageSize(pdfWriter.pageLayout().fullRectPixels(pdfWriter.resolution()).size());
+    doc.drawContents(&painter);
+
+    painter.end();  // Termina el dibujo
+    return true;    // Exportación exitosa
+}
