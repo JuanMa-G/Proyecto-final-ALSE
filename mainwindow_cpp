@@ -13,21 +13,27 @@
 #include <QPainter>
 #include <QTextDocument>
 
+// Constructor principal de la ventana
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
-    ui->setupUi(this);
+    ui->setupUi(this);  // Carga la interfaz diseñada en Qt Designer
 
+    // Se crea el manejador del inventario y se conecta a la base de datos
     inventory = new InventoryManager("inventario.db");
 
+    // Configura la tabla para que no se pueda editar directamente
     ui->componentTable_2->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    ui->componentTable_2->setColumnCount(6);
+    ui->componentTable_2->setColumnCount(6);  // Seis columnas
+
+    // Define los encabezados de columna
     QStringList headers = {"ID", "Nombre", "Tipo", "Cantidad", "Ubicación", "Fecha"};
     ui->componentTable_2->setHorizontalHeaderLabels(headers);
     ui->componentTable_2->horizontalHeader()->setStretchLastSection(true);
     ui->componentTable_2->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
 
+    // Carga los componentes guardados desde la base de datos y los muestra en la tabla
     QList<Component> components = inventory->obtenerTodos();
     ui->componentTable_2->setRowCount(0);
 
@@ -41,12 +47,14 @@ MainWindow::MainWindow(QWidget *parent)
         ui->componentTable_2->setItem(i, 4, new QTableWidgetItem(c.getLocation()));
         ui->componentTable_2->setItem(i, 5, new QTableWidgetItem(c.getPurchaseDate()));
 
+        // Pinta de amarillo si la cantidad es baja (3 o menos)
         QTableWidgetItem *quantityItem = ui->componentTable_2->item(i, 3);
         if (quantityItem && c.getQuantity() <= 3) {
             quantityItem->setBackground(Qt::yellow);
         }
     }
 
+    // Cuando se selecciona una fila de la tabla, se llenan los campos del formulario
     connect(ui->componentTable_2, &QTableWidget::cellClicked, this, [=](int row, int) {
         ui->nameInput->setText(ui->componentTable_2->item(row, 1)->text());
         ui->typeInput->setText(ui->componentTable_2->item(row, 2)->text());
@@ -55,6 +63,7 @@ MainWindow::MainWindow(QWidget *parent)
         ui->dateEditPurchase->setDate(QDate::fromString(ui->componentTable_2->item(row, 5)->text(), "yyyy-MM-dd"));
     });
 
+    // Conexión de botones con sus funciones
     connect(ui->addButton, &QPushButton::clicked, this, &MainWindow::handleAddButto);
     connect(ui->deleteButton, &QPushButton::clicked, this, &MainWindow::handleDeleteButton);
     connect(ui->updateButton, &QPushButton::clicked, this, &MainWindow::handleUpdateButton);
@@ -62,14 +71,14 @@ MainWindow::MainWindow(QWidget *parent)
     connect(ui->searchInput, &QLineEdit::textChanged, this, &MainWindow::filterComponents);
 }
 
+// Destructor de la clase
 MainWindow::~MainWindow()
 {
     delete inventory;
     delete ui;
 }
 
-// ...
-
+// Agrega un nuevo componente a la base y a la tabla
 void MainWindow::handleAddButto()
 {
     Component c;
@@ -79,6 +88,7 @@ void MainWindow::handleAddButto()
     c.setLocation(ui->locationInput->text());
     c.setPurchaseDate(ui->dateEditPurchase->date().toString("yyyy-MM-dd"));
 
+    // Validación de datos obligatorios
     if (c.getName().isEmpty() || c.getType().isEmpty()) {
         QMessageBox::warning(this, "Datos incompletos", "Por favor ingresa al menos nombre y tipo.");
         return;
@@ -90,6 +100,7 @@ void MainWindow::handleAddButto()
         return;
     }
 
+    // Agrega el componente a la tabla
     c.setId(id);
     int row = ui->componentTable_2->rowCount();
     ui->componentTable_2->insertRow(row);
@@ -100,11 +111,13 @@ void MainWindow::handleAddButto()
     ui->componentTable_2->setItem(row, 4, new QTableWidgetItem(c.getLocation()));
     ui->componentTable_2->setItem(row, 5, new QTableWidgetItem(c.getPurchaseDate()));
 
+    // Colorea según la cantidad
     QTableWidgetItem *quantityItem = ui->componentTable_2->item(row, 3);
     if (quantityItem) {
         quantityItem->setBackground(c.getQuantity() <= 3 ? Qt::yellow : Qt::green);
     }
 
+    // Limpia el formulario
     ui->nameInput->clear();
     ui->typeInput->clear();
     ui->quantityInput->setValue(0);
@@ -112,6 +125,7 @@ void MainWindow::handleAddButto()
     ui->dateEditPurchase->setDate(QDate::currentDate());
 }
 
+// Actualiza un componente seleccionado
 void MainWindow::handleUpdateButton()
 {
     int row = ui->componentTable_2->currentRow();
@@ -134,6 +148,7 @@ void MainWindow::handleUpdateButton()
     }
 
     if (inventory->actualizarComponente(c)) {
+        // Se actualiza visualmente en la tabla
         ui->componentTable_2->setItem(row, 1, new QTableWidgetItem(c.getName()));
         ui->componentTable_2->setItem(row, 2, new QTableWidgetItem(c.getType()));
         ui->componentTable_2->setItem(row, 3, new QTableWidgetItem(QString::number(c.getQuantity())));
@@ -145,6 +160,7 @@ void MainWindow::handleUpdateButton()
             quantityItem->setBackground(c.getQuantity() <= 3 ? Qt::yellow : Qt::green);
         }
 
+        // Quita color de las otras columnas
         for (int col = 0; col < ui->componentTable_2->columnCount(); ++col) {
             if (col != 3) {
                 QTableWidgetItem *item = ui->componentTable_2->item(row, col);
@@ -158,7 +174,7 @@ void MainWindow::handleUpdateButton()
     }
 }
 
-
+// Elimina un componente seleccionado
 void MainWindow::handleDeleteButton()
 {
     int row = ui->componentTable_2->currentRow();
@@ -182,6 +198,7 @@ void MainWindow::handleDeleteButton()
     }
 }
 
+// Filtra componentes que coincidan con el texto ingresado
 void MainWindow::filterComponents(const QString &text)
 {
     for (int row = 0; row < ui->componentTable_2->rowCount(); ++row) {
@@ -197,11 +214,12 @@ void MainWindow::filterComponents(const QString &text)
     }
 }
 
+// Muestra un cuadro para elegir el tipo de reporte y lo genera
 void MainWindow::handleGenerateReport()
 {
     QMessageBox msgBox(this);
     msgBox.setWindowTitle("Formato de reporte");
-    msgBox.setText("\u00bfEn qu\u00e9 formato deseas guardar el reporte?");
+    msgBox.setText("¿En qué formato deseas guardar el reporte?");
 
     QPushButton *csvButton = msgBox.addButton("CSV", QMessageBox::AcceptRole);
     QPushButton *pdfButton = msgBox.addButton("PDF", QMessageBox::AcceptRole);
@@ -214,7 +232,7 @@ void MainWindow::handleGenerateReport()
         if (fileName.isEmpty()) return;
 
         if (ReportGenerator::exportToCSV(ui->componentTable_2, fileName)) {
-            QMessageBox::information(this, "\u00c9xito", "Reporte CSV guardado correctamente.");
+            QMessageBox::information(this, "Éxito", "Reporte CSV guardado correctamente.");
         } else {
             QMessageBox::warning(this, "Error", "No se pudo guardar el reporte CSV.");
         }
@@ -223,7 +241,7 @@ void MainWindow::handleGenerateReport()
         if (fileName.isEmpty()) return;
 
         if (ReportGenerator::exportToPDF(ui->componentTable_2, fileName)) {
-            QMessageBox::information(this, "\u00c9xito", "Reporte PDF guardado correctamente.");
+            QMessageBox::information(this, "Éxito", "Reporte PDF guardado correctamente.");
         } else {
             QMessageBox::warning(this, "Error", "No se pudo guardar el reporte PDF.");
         }
