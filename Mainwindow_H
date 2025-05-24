@@ -1,8 +1,8 @@
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
-#include <QMainWindow>
-#include "inventorymanager.h"
 
+#include <QMainWindow>
+#include "inventorymanager.h"  // Incluye el manejador de lógica del inventario
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -10,26 +10,37 @@ class MainWindow;
 }
 QT_END_NAMESPACE
 
+// Clase que representa la ventana principal de la aplicación
 class MainWindow : public QMainWindow
 {
-    Q_OBJECT
+    Q_OBJECT  // Macro necesaria para habilitar señales y slots en Qt
 
 public:
+    // Constructor de la ventana principal
     MainWindow(QWidget *parent = nullptr);
+
+    // Destructor
     ~MainWindow();
 
 private slots:
-    void handleAddButto();  // <- AÑADE ESTA LÍNEA
+    // Slot que maneja el botón de "Agregar"
+    void handleAddButto();
+
+    // Slot que maneja el botón de "Eliminar"
     void handleDeleteButton();
+
+    // Slot que maneja la búsqueda de componentes
     void filterComponents(const QString &text);
+
+    // Slot que maneja la edición de un componente
     void handleUpdateButton();
+
+    // Slot que genera un reporte CSV o PDF
     void handleGenerateReport();
 
-
-
 private:
-    Ui::MainWindow *ui;
-private:
-    InventoryManager *inventory;// manejador de base de datos
+    Ui::MainWindow *ui;  // Puntero a la interfaz gráfica generada por Qt Designer
+    InventoryManager *inventory;  // Manejador de inventario que se comunica con la base de datos
 };
+
 #endif // MAINWINDOW_H
